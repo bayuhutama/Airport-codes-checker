@@ -43,31 +43,39 @@ def index():
                 return jsonify({"error": "Missing 'input_pairs' in request data"}), 400
             
             input_pairs = data['input_pairs'].strip().split('\n')
-            results = []
-
-            for pair in input_pairs:
-                pair = pair.strip().upper()
-                parts = pair.split('-')
-                if len(parts) != 2:
-                    results.append({
-                        "route": pair,
-                        "error": "Invalid input format. Use 'ORIGIN-DESTINATION'."
-                    })
-                else:
-                    origin, destination = parts
-                    result = {
-                        "route": pair,
-                        "departure": get_airport_info(origin),
-                        "arrival": get_airport_info(destination)
-                    }
-                    results.append(result)
-
+            results = process_airport_pairs(input_pairs)
             return jsonify(results)
         except Exception as e:
             print(traceback.format_exc())
             return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+    elif request.method == 'GET':
+        airport_pairs = request.args.get('airport_pairs', '')
+        if airport_pairs:
+            input_pairs = airport_pairs.strip().split('\n')
+            results = process_airport_pairs(input_pairs)
+            return render_template('index.html', results=results)
+    
+    return render_template('index.html')
 
-    return render_template('index.html')  # Only render index.html for GET requests
+def process_airport_pairs(input_pairs):
+    results = []
+    for pair in input_pairs:
+        pair = pair.strip().upper()
+        parts = pair.split('-')
+        if len(parts) != 2:
+            results.append({
+                "route": pair,
+                "error": "Invalid input format. Use 'ORIGIN-DESTINATION'."
+            })
+        else:
+            origin, destination = parts
+            result = {
+                "route": pair,
+                "departure": get_airport_info(origin),
+                "arrival": get_airport_info(destination)
+            }
+            results.append(result)
+    return results
 
 def get_airport_info(code):
     if code in airport_data:
